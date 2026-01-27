@@ -338,10 +338,20 @@
             height: 100%;
             object-fit: cover;
         }
-        .devlog-inline-media img,
-        .devlog-inline-media video {
+        .devlog-inline-media {
+            display: inline-block;
+        }
+        .devlog-inline-media img {
             max-width: 100%;
             max-height: 400px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .devlog-inline-media video {
+            max-width: 500px;
+            max-height: 300px;
+            width: auto;
+            height: auto;
             border-radius: 8px;
             border: 1px solid var(--border-color);
         }
@@ -1406,7 +1416,6 @@ Yukarıda göründüğü gibi çalışıyor."></textarea>
                                 </svg>
                             </div>
                             <div class="devlog-entry-content">
-                                <p class="text-sub leading-relaxed">${entry.content || ''}</p>
                                 ${entry.content ? `<div class="devlog-entry-body">${renderContentWithMedia(entry.content)}</div>` : ''}
                                 ${entry.tags?.length ? `
                                     <div class="devlog-tags">
@@ -1460,11 +1469,11 @@ Yukarıda göründüğü gibi çalışıyor."></textarea>
                 // Video kontrolü (.mp4, .webm, .ogg)
                 else if (trimmedLine.match(/\.(mp4|webm|ogg)$/i)) {
                     result.push(`<div class="devlog-inline-media my-3">
-                        <div class="relative rounded-lg overflow-hidden cursor-pointer group" onclick="openLightbox('${trimmedLine}', true)">
-                            <video src="${trimmedLine}" class="max-w-full" muted></video>
+                        <div class="relative inline-block rounded-lg overflow-hidden cursor-pointer group" onclick="openLightbox('${trimmedLine}', true)">
+                            <video src="${trimmedLine}" muted></video>
                             <div class="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/50 transition-colors">
-                                <div class="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-                                    <svg class="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                <div class="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-black ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                 </div>
                             </div>
                         </div>
