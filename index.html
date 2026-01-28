@@ -41,8 +41,16 @@
         }
 
         /* Card hover - belirgin animasyon */
-        .project-card, .devlog-project-card {
+        .project-card {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        .devlog-project-card {
             background-color: var(--bg-card);
             display: flex;
             flex-direction: column;
@@ -62,7 +70,7 @@
             clip-path: polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%);
             transition: clip-path 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .project-card:hover, .devlog-project-card:hover {
+        .project-card:hover {
             transform: translateY(-8px) scale(1.02);
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
@@ -118,7 +126,7 @@
             border-color: rgba(150, 150, 150, 0.8) !important;
         }
         /* Kart hover olunca buton da değişsin */
-        .project-card:hover .card-btn, .devlog-project-card:hover .card-btn {
+        .project-card:hover .card-btn {
             border-color: rgba(150, 150, 150, 0.8);
             background-color: rgba(150, 150, 150, 0.15);
             color: var(--text-primary);
