@@ -428,6 +428,87 @@
             margin-top: 3rem; margin-bottom: 1.5rem; padding-bottom: 0.5rem;
             border-bottom: 1px solid var(--border-color);
         }
+
+        /* Video Thumbnail Styles */
+        .video-thumbnail {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 4px;
+            background: #1a1a1a;
+        }
+        .video-thumbnail img,
+        .video-thumbnail canvas,
+        .video-thumbnail video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-thumbnail .play-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+        .video-thumbnail:hover .play-overlay {
+            background: rgba(0,0,0,0.5);
+        }
+        .video-thumbnail .play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .video-thumbnail:hover .play-btn {
+            transform: scale(1.1);
+        }
+        .video-thumbnail .play-btn.youtube {
+            background: #FF0000;
+        }
+        .video-thumbnail .play-btn.local {
+            background: rgba(255,255,255,0.9);
+        }
+        .video-thumbnail .video-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+        }
+        .video-thumbnail .video-badge.youtube {
+            background: #FF0000;
+        }
+        .video-thumbnail .video-badge.local {
+            background: rgba(0,0,0,0.7);
+        }
+        .video-thumbnail .loading-indicator {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a1a;
+        }
+        .video-thumbnail .loading-indicator::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            border: 2px solid #333;
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
     </style>
 </head>
 <body class="dark">
@@ -856,11 +937,15 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
     </footer>
 
     <script>
-        // ==================== YOUTUBE HELPERS ====================
+        // ==================== VIDEO THUMBNAIL SYSTEM ====================
+        const videoThumbnailCache = new Map();
+
+        // Check if URL is YouTube
         function isYouTubeUrl(url) {
             return url && (url.includes('youtube.com') || url.includes('youtu.be'));
         }
 
+        // Extract YouTube video ID
         function getYouTubeId(url) {
             if (!url) return null;
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -868,50 +953,12 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
             return (match && match[2].length === 11) ? match[2] : null;
         }
 
+        // Get YouTube thumbnail URL
         function getYouTubeThumbnail(videoId) {
             return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
         }
 
-        function renderVideoElement(url, autoplay = false, controls = true) {
-            if (isYouTubeUrl(url)) {
-                const videoId = getYouTubeId(url);
-                if (videoId) {
-                    const autoplayParam = autoplay ? '&autoplay=1' : '';
-                    return `<iframe src="https://www.youtube.com/embed/${videoId}?rel=0${autoplayParam}" class="w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-                }
-            }
-            return `<video src="${url}" class="w-full h-full" ${controls ? 'controls' : ''} ${autoplay ? 'autoplay' : ''}></video>`;
-        }
-
-        function renderVideoThumbnail(url, onclick) {
-            if (isYouTubeUrl(url)) {
-                const videoId = getYouTubeId(url);
-                if (videoId) {
-                    return `<div class="relative w-full aspect-video cursor-pointer bg-gray-800 rounded overflow-hidden" onclick="${onclick}">
-                        <img src="${getYouTubeThumbnail(videoId)}" alt="YouTube Video" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <div class="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center">
-                                <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                            </div>
-                        </div>
-                        <span class="absolute bottom-1 right-1 text-xs text-white bg-red-600 px-1 rounded">YouTube</span>
-                    </div>`;
-                }
-            }
-            // Local video - show static thumbnail with play button
-            return `<div class="relative w-full aspect-video cursor-pointer bg-gray-700 rounded overflow-hidden" onclick="${onclick}">
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <svg class="w-16 h-16 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-                </div>
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div class="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-black ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                </div>
-                <span class="absolute bottom-1 right-1 text-xs text-white bg-black/70 px-1 rounded">VIDEO</span>
-            </div>`;
-        }
-
+        // Check if URL is a video file
         function isVideoUrl(url) {
             return url && (url.match(/\.(mp4|webm|ogg)$/i) || isYouTubeUrl(url));
         }
@@ -919,11 +966,195 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
         // Fix asset paths for GitHub Pages
         function fixAssetPath(path) {
             if (!path) return path;
-            // Remove leading ./ if present
             if (path.startsWith('./')) {
                 path = path.substring(2);
             }
             return path;
+        }
+
+        // Generate thumbnail from local video
+        function generateVideoThumbnail(videoUrl, callback) {
+            const fixedUrl = fixAssetPath(videoUrl);
+            
+            // Check cache first
+            if (videoThumbnailCache.has(fixedUrl)) {
+                callback(videoThumbnailCache.get(fixedUrl));
+                return;
+            }
+
+            const video = document.createElement('video');
+            video.crossOrigin = 'anonymous';
+            video.muted = true;
+            video.preload = 'metadata';
+
+            video.onloadeddata = function() {
+                // Seek to 1 second or 10% of video, whichever is less
+                video.currentTime = Math.min(1, video.duration * 0.1);
+            };
+
+            video.onseeked = function() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 360;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    videoThumbnailCache.set(fixedUrl, dataUrl);
+                    callback(dataUrl);
+                } catch (e) {
+                    console.warn('Could not generate thumbnail for:', fixedUrl);
+                    callback(null);
+                }
+            };
+
+            video.onerror = function() {
+                console.warn('Video load error for thumbnail:', fixedUrl);
+                callback(null);
+            };
+
+            // Timeout fallback
+            setTimeout(() => {
+                if (!videoThumbnailCache.has(fixedUrl)) {
+                    callback(null);
+                }
+            }, 5000);
+
+            video.src = fixedUrl;
+            video.load();
+        }
+
+        // Create video thumbnail element with proper styling
+        function createVideoThumbnailElement(videoUrl, onclick, containerId) {
+            const fixedUrl = fixAssetPath(videoUrl);
+            const escapedUrl = fixedUrl.replace(/'/g, "\\'");
+            const isYT = isYouTubeUrl(videoUrl);
+            
+            const container = document.createElement('div');
+            container.className = 'video-thumbnail';
+            container.onclick = () => eval(onclick.replace('VIDEO_URL', escapedUrl));
+            container.id = containerId;
+
+            if (isYT) {
+                const videoId = getYouTubeId(videoUrl);
+                if (videoId) {
+                    container.innerHTML = `
+                        <img src="${getYouTubeThumbnail(videoId)}" alt="YouTube Video">
+                        <div class="play-overlay">
+                            <div class="play-btn youtube">
+                                <svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                        </div>
+                        <span class="video-badge youtube">YouTube</span>
+                    `;
+                }
+            } else {
+                // Local video - show loading first, then generate thumbnail
+                container.innerHTML = `
+                    <div class="loading-indicator"></div>
+                    <div class="play-overlay" style="display:none;">
+                        <div class="play-btn local">
+                            <svg class="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                    </div>
+                    <span class="video-badge local">VIDEO</span>
+                `;
+
+                // Generate thumbnail asynchronously
+                generateVideoThumbnail(videoUrl, (thumbnailUrl) => {
+                    const loadingEl = container.querySelector('.loading-indicator');
+                    const playOverlay = container.querySelector('.play-overlay');
+                    
+                    if (thumbnailUrl) {
+                        const img = document.createElement('img');
+                        img.src = thumbnailUrl;
+                        img.alt = 'Video Thumbnail';
+                        if (loadingEl) loadingEl.remove();
+                        container.insertBefore(img, playOverlay);
+                    } else {
+                        // Fallback: show video icon placeholder
+                        if (loadingEl) {
+                            loadingEl.innerHTML = `
+                                <svg class="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+                                </svg>
+                            `;
+                            loadingEl.className = 'absolute inset-0 flex items-center justify-center bg-gray-800';
+                        }
+                    }
+                    
+                    if (playOverlay) playOverlay.style.display = 'flex';
+                });
+            }
+
+            return container;
+        }
+
+        // Render video thumbnail HTML (for inline use)
+        function renderVideoThumbnailHTML(videoUrl, onclick) {
+            const fixedUrl = fixAssetPath(videoUrl);
+            const escapedUrl = fixedUrl.replace(/'/g, "\\'");
+            const isYT = isYouTubeUrl(videoUrl);
+            const uniqueId = 'vt-' + Math.random().toString(36).substr(2, 9);
+
+            if (isYT) {
+                const videoId = getYouTubeId(videoUrl);
+                if (videoId) {
+                    return `
+                        <div class="video-thumbnail" onclick="${onclick.replace('VIDEO_URL', escapedUrl)}">
+                            <img src="${getYouTubeThumbnail(videoId)}" alt="YouTube Video">
+                            <div class="play-overlay">
+                                <div class="play-btn youtube">
+                                    <svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                </div>
+                            </div>
+                            <span class="video-badge youtube">YouTube</span>
+                        </div>
+                    `;
+                }
+            }
+
+            // For local videos, return placeholder and schedule thumbnail generation
+            setTimeout(() => {
+                const el = document.getElementById(uniqueId);
+                if (el) {
+                    generateVideoThumbnail(videoUrl, (thumbnailUrl) => {
+                        const loadingEl = el.querySelector('.loading-indicator');
+                        const playOverlay = el.querySelector('.play-overlay');
+                        
+                        if (thumbnailUrl) {
+                            const img = document.createElement('img');
+                            img.src = thumbnailUrl;
+                            img.alt = 'Video Thumbnail';
+                            if (loadingEl) loadingEl.remove();
+                            el.insertBefore(img, playOverlay);
+                        } else {
+                            if (loadingEl) {
+                                loadingEl.innerHTML = `
+                                    <svg class="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+                                    </svg>
+                                `;
+                                loadingEl.className = 'absolute inset-0 flex items-center justify-center bg-gray-800';
+                            }
+                        }
+                        
+                        if (playOverlay) playOverlay.style.display = 'flex';
+                    });
+                }
+            }, 50);
+
+            return `
+                <div class="video-thumbnail" id="${uniqueId}" onclick="${onclick.replace('VIDEO_URL', escapedUrl)}">
+                    <div class="loading-indicator"></div>
+                    <div class="play-overlay" style="display:none;">
+                        <div class="play-btn local">
+                            <svg class="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                    </div>
+                    <span class="video-badge local">VIDEO</span>
+                </div>
+            `;
         }
 
         // ==================== EMBEDDED FIREBASE CONFIG ====================
@@ -980,7 +1211,6 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
                     }
                     firebaseDb = firebase.database();
                     
-                    // Timeout ile veri çekme
                     const timeout = setTimeout(() => {
                         console.log('Firebase timeout, using local data');
                         updateFirebaseStatus('disconnected');
@@ -1215,20 +1445,57 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
                     const videoId = getYouTubeId(t);
                     if (videoId) {
                         return `<div class="devlog-inline-media my-3">
-                            <div class="relative inline-block cursor-pointer" onclick="openLightbox('${t}', 'youtube')">
-                                <img src="${getYouTubeThumbnail(videoId)}" alt="YouTube Video" class="rounded-lg border border-gray-600" style="max-width: 400px;">
-                                <div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
-                                    <div class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center">
-                                        <svg class="w-7 h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            <div class="video-thumbnail" style="max-width: 400px; display: inline-block;" onclick="openLightbox('${t}', 'youtube')">
+                                <img src="${getYouTubeThumbnail(videoId)}" alt="YouTube Video">
+                                <div class="play-overlay">
+                                    <div class="play-btn youtube">
+                                        <svg class="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                     </div>
                                 </div>
+                                <span class="video-badge youtube">YouTube</span>
                             </div>
                         </div>`;
                     }
                 }
                 // Check for local videos
                 if (t.match(/\.(mp4|webm|ogg)$/i)) {
-                    return `<div class="devlog-inline-media my-3"><div class="relative inline-block cursor-pointer" onclick="openLightbox('${t}', 'video')"><video src="${t}" muted playsinline preload="metadata" crossorigin="anonymous" onloadedmetadata="try{this.currentTime=0.1;}catch(e){}" onerror="this.poster='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22><rect fill=%22%23374151%22 width=%22400%22 height=%22225%22/><text x=%22200%22 y=%22120%22 text-anchor=%22middle%22 fill=%22%239CA3AF%22 font-size=%2216%22>Video</text></svg>'" class="rounded-lg border border-gray-600" style="max-width: 400px; min-height: 200px; background: #374151;"></video><div class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none"><div class="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center"><svg class="w-6 h-6 text-black ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div><span class="absolute bottom-2 right-2 text-xs text-white bg-black/70 px-1.5 py-0.5 rounded">VIDEO</span></div></div>`;
+                    const uniqueId = 'devlog-vt-' + Math.random().toString(36).substr(2, 9);
+                    // Schedule thumbnail generation
+                    setTimeout(() => {
+                        const el = document.getElementById(uniqueId);
+                        if (el) {
+                            generateVideoThumbnail(t, (thumbnailUrl) => {
+                                const loadingEl = el.querySelector('.loading-indicator');
+                                const playOverlay = el.querySelector('.play-overlay');
+                                
+                                if (thumbnailUrl) {
+                                    const img = document.createElement('img');
+                                    img.src = thumbnailUrl;
+                                    img.alt = 'Video Thumbnail';
+                                    if (loadingEl) loadingEl.remove();
+                                    el.insertBefore(img, playOverlay);
+                                } else {
+                                    if (loadingEl) {
+                                        loadingEl.innerHTML = `<svg class="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`;
+                                        loadingEl.className = 'absolute inset-0 flex items-center justify-center bg-gray-800';
+                                    }
+                                }
+                                if (playOverlay) playOverlay.style.display = 'flex';
+                            });
+                        }
+                    }, 50);
+                    
+                    return `<div class="devlog-inline-media my-3">
+                        <div class="video-thumbnail" id="${uniqueId}" style="max-width: 400px; display: inline-block;" onclick="openLightbox('${t}', 'video')">
+                            <div class="loading-indicator"></div>
+                            <div class="play-overlay" style="display:none;">
+                                <div class="play-btn local">
+                                    <svg class="w-6 h-6 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                </div>
+                            </div>
+                            <span class="video-badge local">VIDEO</span>
+                        </div>
+                    </div>`;
                 }
                 if (t) return `<p class="text-sub leading-relaxed mb-2">${t}</p>`;
                 return '<div class="h-2"></div>';
@@ -1425,35 +1692,11 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
             
             const thumb = fixAssetPath(project.thumbnail);
             
-            // Generate video thumbnails
-            const videoThumbnails = (project.videos || []).map(v => {
+            // Generate video thumbnails with proper thumbnail generation
+            const videoThumbnails = (project.videos || []).map((v, idx) => {
                 const fixedV = fixAssetPath(v);
                 const escapedUrl = fixedV.replace(/'/g, "\\'");
-                if (isYouTubeUrl(v)) {
-                    const videoId = getYouTubeId(v);
-                    return `<div class="relative w-full aspect-video cursor-pointer bg-gray-800 rounded overflow-hidden" onclick="showVideo('${escapedUrl}')">
-                        <img src="${getYouTubeThumbnail(videoId)}" alt="YouTube Video" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <div class="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                            </div>
-                        </div>
-                        <span class="absolute bottom-1 right-1 text-xs text-white bg-red-600 px-1 rounded">YouTube</span>
-                    </div>`;
-                } else {
-                    // Local video - show static thumbnail with play button
-                    return `<div class="relative w-full aspect-video cursor-pointer bg-gray-700 rounded overflow-hidden" onclick="showVideo('${escapedUrl}')">
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <svg class="w-10 h-10 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-                        </div>
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                                <svg class="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                            </div>
-                        </div>
-                        <span class="absolute bottom-1 right-1 text-xs text-white bg-black/70 px-1 rounded">VIDEO</span>
-                    </div>`;
-                }
+                return renderVideoThumbnailHTML(v, `showVideo('VIDEO_URL')`);
             }).join('');
             
             // Generate screenshot thumbnails
@@ -1504,7 +1747,7 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
             document.querySelectorAll('.scroll-reveal:not(.revealed)').forEach(el => observer.observe(el));
         }
 
-        // Debug helper - check console for errors on GitHub Pages
+        // Debug helper
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo);
             return false;
