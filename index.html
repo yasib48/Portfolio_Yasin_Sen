@@ -515,6 +515,13 @@
             position: relative;
             z-index: 10;
         }
+        .admin-btn-wrapper button {
+            pointer-events: auto;
+            user-select: none;
+        }
+        .project-card-admin[draggable="true"] .admin-btn-wrapper {
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body class="dark">
@@ -1501,9 +1508,32 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
         // ==================== DRAG & DROP PROJECTS - FIXED ====================
         let draggedProjectIndex = null;
         
+        // Buton click handler fonksiyonları
+        function handleCategoryClick(e, index) {
+            e.stopPropagation();
+            e.preventDefault();
+            toggleProjectCategory(index);
+            return false;
+        }
+        
+        function handleEditClick(e, index) {
+            e.stopPropagation();
+            e.preventDefault();
+            editProject(index);
+            return false;
+        }
+        
+        function handleDeleteClick(e, index) {
+            e.stopPropagation();
+            e.preventDefault();
+            deleteProject(index);
+            return false;
+        }
+        
         function renderProjectsAdmin() {
-            document.getElementById('projectsList').innerHTML = siteData.projects.map((p, i) => `
-                <div class="project-card-admin" draggable="true" data-index="${i}" ondragstart="handleDragStart(event, ${i})" ondragover="handleDragOver(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, ${i})" ondragend="handleDragEnd(event)">
+            const container = document.getElementById('projectsList');
+            container.innerHTML = siteData.projects.map((p, i) => `
+                <div class="project-card-admin" draggable="true" data-index="${i}">
                     <div class="project-card-admin-header">
                         <div class="flex items-center gap-3">
                             <div class="drag-handle"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg></div>
@@ -1511,25 +1541,71 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
                             <span class="category-badge ${p.category || 'main'}">${p.category === 'other' ? 'Other' : 'Main'}</span>
                             <div><h4 class="text-white font-semibold">${p.title}</h4><p class="text-gray-400 text-sm">${p.shortDesc.substring(0, 50)}...</p></div>
                         </div>
-                        <div class="flex gap-2 admin-btn-wrapper">
-                            <button onmousedown="event.stopPropagation()" onclick="event.stopPropagation(); event.preventDefault(); toggleProjectCategory(${i})" class="admin-btn admin-btn-secondary text-sm">${p.category === 'other' ? '⬆️ Main' : '⬇️ Other'}</button>
-                            <button onmousedown="event.stopPropagation()" onclick="event.stopPropagation(); event.preventDefault(); editProject(${i})" class="admin-btn admin-btn-secondary">✏️</button>
-                            <button onmousedown="event.stopPropagation()" onclick="event.stopPropagation(); event.preventDefault(); deleteProject(${i})" class="admin-btn admin-btn-danger">🗑️</button>
+                        <div class="flex gap-2 admin-btn-wrapper" onclick="event.stopPropagation()">
+                            <button type="button" data-action="category" data-index="${i}" class="admin-btn admin-btn-secondary text-sm">${p.category === 'other' ? '⬆️ Main' : '⬇️ Other'}</button>
+                            <button type="button" data-action="edit" data-index="${i}" class="admin-btn admin-btn-secondary">✏️</button>
+                            <button type="button" data-action="delete" data-index="${i}" class="admin-btn admin-btn-danger">🗑️</button>
                         </div>
                     </div>
                 </div>`).join('');
+            
+            // Event delegation ile butonlara click handler ekle
+            container.querySelectorAll('[data-action]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const action = this.dataset.action;
+                    const index = parseInt(this.dataset.index);
+                    if (action === 'category') toggleProjectCategory(index);
+                    else if (action === 'edit') editProject(index);
+                    else if (action === 'delete') deleteProject(index);
+                });
+                btn.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                });
+            });
+            
+            // Drag event'lerini kart seviyesinde ekle
+            container.querySelectorAll('.project-card-admin').forEach(card => {
+                const index = parseInt(card.dataset.index);
+                card.addEventListener('dragstart', (e) => handleDragStart(e, index));
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('dragenter', handleDragEnter);
+                card.addEventListener('dragleave', handleDragLeave);
+                card.addEventListener('drop', (e) => handleDrop(e, index));
+                card.addEventListener('dragend', handleDragEnd);
+            });
         }
 
         function handleDragStart(e, index) { 
+            // Buton üzerinden drag başlatılmasını engelle
+            if (e.target.closest('.admin-btn-wrapper')) {
+                e.preventDefault();
+                return;
+            }
             draggedProjectIndex = index; 
             e.target.classList.add('dragging'); 
             e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', index);
         }
-        function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
-        function handleDragEnter(e) { e.preventDefault(); const card = e.target.closest('.project-card-admin'); if (card) card.classList.add('drag-over'); }
-        function handleDragLeave(e) { const card = e.target.closest('.project-card-admin'); if (card) card.classList.remove('drag-over'); }
+        function handleDragOver(e) { 
+            e.preventDefault(); 
+            e.dataTransfer.dropEffect = 'move'; 
+        }
+        function handleDragEnter(e) { 
+            e.preventDefault(); 
+            const card = e.target.closest('.project-card-admin'); 
+            if (card) card.classList.add('drag-over'); 
+        }
+        function handleDragLeave(e) { 
+            const card = e.target.closest('.project-card-admin'); 
+            if (card && !card.contains(e.relatedTarget)) {
+                card.classList.remove('drag-over'); 
+            }
+        }
         function handleDrop(e, targetIndex) { 
             e.preventDefault(); 
+            e.stopPropagation();
             const card = e.target.closest('.project-card-admin'); 
             if (card) card.classList.remove('drag-over'); 
             if (draggedProjectIndex !== null && draggedProjectIndex !== targetIndex) { 
@@ -1539,6 +1615,7 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
                 renderProjectsAdmin(); 
                 showToast('📦 Proje sırası güncellendi!'); 
             } 
+            draggedProjectIndex = null;
         }
         function handleDragEnd(e) { 
             e.target.classList.remove('dragging'); 
@@ -1559,12 +1636,76 @@ https://www.youtube.com/watch?v=VIDEO_ID"></textarea>
         }
 
         function editProject(index) { 
-            const p = siteData.projects[index]; 
+            console.log('editProject called with index:', index);
+            const p = siteData.projects[index];
+            if (!p) {
+                console.error('Project not found at index:', index);
+                showToast('❌ Proje bulunamadı!');
+                return;
+            }
+            
+            // Özel karakterleri escape et
+            const escapeHtml = (str) => {
+                if (!str) return '';
+                return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            };
+            
             const modal = document.createElement('div'); 
             modal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-[10001] p-4'; 
-            modal.id = 'editProjectModal'; 
-            modal.innerHTML = `<div class="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-700"><h3 class="text-xl font-bold text-white mb-4">✏️ Proje Düzenle</h3><div class="grid-2"><div><label class="admin-label">Başlık</label><input type="text" id="editTitle" class="admin-input" value="${p.title}"></div><div><label class="admin-label">Yıl</label><input type="text" id="editYear" class="admin-input" value="${p.year}"></div></div><div class="grid-2"><div><label class="admin-label">Kategori</label><select id="editCategory" class="admin-input"><option value="main" ${p.category !== 'other' ? 'selected' : ''}>Main Projects</option><option value="other" ${p.category === 'other' ? 'selected' : ''}>Other Projects</option></select></div></div><label class="admin-label">Kısa Açıklama</label><input type="text" id="editShortDesc" class="admin-input" value="${p.shortDesc}"><label class="admin-label">Detaylı Açıklama</label><textarea id="editFullDesc" class="admin-input admin-textarea" style="min-height:150px;">${p.fullDesc}</textarea><label class="admin-label">Thumbnail URL</label><input type="text" id="editThumbnail" class="admin-input" value="${p.thumbnail}"><label class="admin-label">Screenshots (virgülle ayır)</label><input type="text" id="editScreenshots" class="admin-input" value="${p.screenshots.join(', ')}"><label class="admin-label">Videos (virgülle ayır - dosya yolu veya YouTube linki)</label><input type="text" id="editVideos" class="admin-input" value="${p.videos.join(', ')}" placeholder="./assets/video.mp4, https://www.youtube.com/watch?v=VIDEO_ID"><label class="admin-label">Teknolojiler (virgülle ayır)</label><input type="text" id="editTech" class="admin-input" value="${p.technologies.join(', ')}"><label class="admin-label">Platformlar (virgülle ayır)</label><input type="text" id="editPlatforms" class="admin-input" value="${p.platforms.join(', ')}"><label class="admin-label">Download Link</label><input type="text" id="editDownload" class="admin-input" value="${p.downloadLink}"><div class="flex gap-3 mt-4"><button onclick="saveProjectEdit(${index})" class="admin-btn admin-btn-success">💾 Kaydet</button><button onclick="document.getElementById('editProjectModal').remove()" class="admin-btn admin-btn-secondary">İptal</button></div></div>`; 
-            document.body.appendChild(modal); 
+            modal.id = 'editProjectModal';
+            
+            modal.innerHTML = `
+                <div class="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-700">
+                    <h3 class="text-xl font-bold text-white mb-4">✏️ Proje Düzenle</h3>
+                    <div class="grid-2">
+                        <div>
+                            <label class="admin-label">Başlık</label>
+                            <input type="text" id="editTitle" class="admin-input" value="${escapeHtml(p.title)}">
+                        </div>
+                        <div>
+                            <label class="admin-label">Yıl</label>
+                            <input type="text" id="editYear" class="admin-input" value="${escapeHtml(p.year)}">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div>
+                            <label class="admin-label">Kategori</label>
+                            <select id="editCategory" class="admin-input">
+                                <option value="main" ${p.category !== 'other' ? 'selected' : ''}>Main Projects</option>
+                                <option value="other" ${p.category === 'other' ? 'selected' : ''}>Other Projects</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label class="admin-label">Kısa Açıklama</label>
+                    <input type="text" id="editShortDesc" class="admin-input" value="${escapeHtml(p.shortDesc)}">
+                    <label class="admin-label">Detaylı Açıklama</label>
+                    <textarea id="editFullDesc" class="admin-input admin-textarea" style="min-height:150px;">${escapeHtml(p.fullDesc)}</textarea>
+                    <label class="admin-label">Thumbnail URL</label>
+                    <input type="text" id="editThumbnail" class="admin-input" value="${escapeHtml(p.thumbnail)}">
+                    <label class="admin-label">Screenshots (virgülle ayır)</label>
+                    <input type="text" id="editScreenshots" class="admin-input" value="${escapeHtml((p.screenshots || []).join(', '))}">
+                    <label class="admin-label">Videos (virgülle ayır - dosya yolu veya YouTube linki)</label>
+                    <input type="text" id="editVideos" class="admin-input" value="${escapeHtml((p.videos || []).join(', '))}" placeholder="./assets/video.mp4, https://www.youtube.com/watch?v=VIDEO_ID">
+                    <label class="admin-label">Teknolojiler (virgülle ayır)</label>
+                    <input type="text" id="editTech" class="admin-input" value="${escapeHtml((p.technologies || []).join(', '))}">
+                    <label class="admin-label">Platformlar (virgülle ayır)</label>
+                    <input type="text" id="editPlatforms" class="admin-input" value="${escapeHtml((p.platforms || []).join(', '))}">
+                    <label class="admin-label">Download Link</label>
+                    <input type="text" id="editDownload" class="admin-input" value="${escapeHtml(p.downloadLink)}">
+                    <div class="flex gap-3 mt-4">
+                        <button id="saveProjectBtn" class="admin-btn admin-btn-success">💾 Kaydet</button>
+                        <button id="cancelProjectBtn" class="admin-btn admin-btn-secondary">İptal</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Event listener'ları ayrı ekle
+            document.getElementById('saveProjectBtn').addEventListener('click', () => saveProjectEdit(index));
+            document.getElementById('cancelProjectBtn').addEventListener('click', () => modal.remove());
+            
+            console.log('Edit modal created successfully');
         }
         
         function saveProjectEdit(index) { 
